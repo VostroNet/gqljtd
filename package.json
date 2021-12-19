@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "test": "jest"
   },
   "devDependencies": {
     "@tsconfig/node14": "^1.0.1",

@@ -1,5 +1,5 @@
 import logger from "./utils/logger";
-import {visit, Kind, DocumentNode, GraphQLFieldConfig} from "graphql";
+import {visit, Kind, DocumentNode, GraphQLFieldConfig, GraphQLFieldConfigArgumentMap} from "graphql";
 
 import {
   GraphQLSchema,
@@ -13,9 +13,8 @@ import {
 import { IJtd, IJtdDict, IJtdRoot, JtdType } from "./types/jtd";
 
 
-function createType(field: GraphQLFieldConfig<any, any, any> | GraphQLType) {
-
-  const fieldType = !(field as GraphQLFieldConfig<any, any, any>).type ? field as GraphQLType : field.;
+function createType(fieldType: GraphQLType) {
+  // const fieldType = !(field as GraphQLFieldConfig<any, any, any>).type ? field as GraphQLType : (field as GraphQLFieldConfig<any, any, any>).type;
   const required = fieldType instanceof GraphQLNonNull;
   let type: GraphQLType;
   if (required) {
@@ -63,16 +62,28 @@ function createType(field: GraphQLFieldConfig<any, any, any> | GraphQLType) {
   } else {
     typeDef.nullable = true;
   }
-  if(field.args) {
-  
-    typeDef.arguments = Object.keys(field.args).reduce((o, a) => {
-      if(field.args) {
-        o[a] = createType(field.args[a]);
-      }
-      return o;
-    }, {} as IJtdDict);
-  }
+  // if(obj?.args) {
+  //     typeDef.arguments = Object.keys(obj.args).reduce((o, a) => {
+  //     if(obj?.args) {
+  //       o[a] = createType(obj?.args[a]);
+  //     }
+  //     return o;
+  //   }, {} as IJtdDict);
+  // }
   return typeDef;
+}
+
+export function createArguments(argMap: GraphQLFieldConfigArgumentMap | undefined) : IJtdDict | undefined {
+  if(argMap) {
+    const keys = Object.keys(argMap);
+    if(keys.length > 0) {
+      return keys.reduce((o, k) => {
+        o[k] = createType(argMap[k].type);
+        return o;
+      }, {} as IJtdDict);
+    }
+  }
+  return undefined;
 }
 
 export function createTypes(schema: GraphQLSchema) {
@@ -95,48 +106,6 @@ export function createTypes(schema: GraphQLSchema) {
       return Object.keys(objectConfig.fields).reduce(
         (o, k) => {
           const field = objectConfig.fields[k];
-          // const required = field.type instanceof GraphQLNonNull;
-          // let type: GraphQLType;
-          // if (required) {
-          //   type = (field.type as GraphQLNonNull<GraphQLType>).ofType;
-          // } else {
-          //   type = field.type;
-          // }
-          // let isList = false;
-          // if (type instanceof GraphQLList) {
-          //   isList = true;
-          //   type = type.ofType;
-          // }
-          // let typeName = type.toString();
-          // let typeDef = {} as IJtd;
-          // if (type instanceof GraphQLScalarType) {
-          //   switch (typeName) {
-          //     case "Int":
-          //       typeDef = { type: JtdType.INT32 };
-          //       break;
-          //     case "ID":
-          //     case "String":
-          //       typeDef = { type: JtdType.STRING };
-          //       break;
-          //     case "Float":
-          //       typeDef = { type: JtdType.FLOAT32 };
-          //       break;
-          //     default:
-          //       logger.err(`no scalar type found for ${typeName}`);
-          //       break;
-          //   }
-          // } else if (type instanceof GraphQLObjectType) {
-          //   typeDef = { ref: type.name };
-          // } else if (type instanceof GraphQLEnumType) {
-          //   typeDef = { ref: type.name };
-          // } else if (type instanceof GraphQLList) {
-          //   throw "TODO: List in list - needs implementing";
-          // } else {
-          //   logger.err(`unknown gql type ${typeName}`);
-          // }
-          // if (isList) {
-          //   typeDef = {elements: typeDef}
-          // }
           const typeDef = createType(field.type);
           if (!typeDef.nullable) {
             if (!o.properties) {
@@ -149,6 +118,8 @@ export function createTypes(schema: GraphQLSchema) {
             }
             o.optionalProperties[k] = typeDef;
           }
+          typeDef.arguments = createArguments(field.args);
+          
          
           return o;
         },
