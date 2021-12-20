@@ -1,5 +1,5 @@
 import logger from "./utils/logger";
-import {visit, Kind, DocumentNode, GraphQLFieldConfig, GraphQLFieldConfigArgumentMap} from "graphql";
+import {visit, Kind, DocumentNode, GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, OperationDefinitionNode} from "graphql";
 
 import {
   GraphQLSchema,
@@ -11,6 +11,7 @@ import {
   GraphQLList,
 } from "graphql";
 import { IJtd, IJtdDict, IJtdRoot, JtdType } from "./types/jtd";
+import { devNull } from "os";
 
 
 function createType(fieldType: GraphQLType) {
@@ -189,11 +190,8 @@ export function isJTDScalarType(typeDef: IJtd) {
 }
 
 
-function getTypeFromJDTSchema(path: string | string[], schema: IJtdRoot) {
+function getFromJDTSchema(path: string[], schema: IJtdRoot, getField = false) {
   let p = path;
-  if(!Array.isArray(p)) {
-    p = (path as string).split(".");
-  }
 
   let currentLevel: IJtd = schema;
 
@@ -221,7 +219,7 @@ function getTypeFromJDTSchema(path: string | string[], schema: IJtdRoot) {
       return undefined;
     }
   }
-  if(prop?.ref && schema.definitions) {
+  if(prop?.ref && schema.definitions && !getField) {
     return schema.definitions[prop.ref];
   }
   return prop;
@@ -231,23 +229,54 @@ function getTypeFromJDTSchema(path: string | string[], schema: IJtdRoot) {
 
 export function cleanDocument(query: DocumentNode, schema: IJtdRoot) {
   let fieldPath = [] as string[];
+  let variableDefinitions = {} as any;
   const newSchema = visit(query, {
     [Kind.OPERATION_DEFINITION]: {
       enter: (def, key, parent, path, ancestors) => {
+        if (def.variableDefinitions) {
+          def.variableDefinitions.forEach((vd) => {
+            variableDefinitions[vd.variable.name.value] = 0;
+          });
+        }
         if(def.operation === "query") {
           fieldPath.push("Query");
         } else {
           fieldPath.push("Mutation");
         }
       },
-      leave: () => {
+      leave: (def) => {
         fieldPath.pop();
+        if (def.variableDefinitions) {
+          const val = {
+            ...def,
+            variableDefinitions: def.variableDefinitions.filter((vd) => {
+              return variableDefinitions[vd.variable.name.value] > 0;
+            }),
+          } as OperationDefinitionNode;
+          variableDefinitions = {}; //Reset for the next def
+          return val;
+        }
+        return undefined;
       }
+    },
+    [Kind.ARGUMENT]: {
+      enter: (node, key, parent, path, ancestors) => {
+        const field = getFromJDTSchema(fieldPath, schema, true);
+        // console.log("arg", {node, key, parent, fieldPath, path, ancestors, field});
+        if (field?.arguments) {
+          if (field.arguments[node.name.value]) {
+            variableDefinitions[node.name.value]++;
+            return node;
+          }
+        }
+        return null;
+      },
+      
     },
     [Kind.FIELD]:  {
       enter: (node, key, parent, path, ancestors) => {
         fieldPath.push(node.name.value);
-        const isValid = getTypeFromJDTSchema(fieldPath, schema);
+        const isValid = getFromJDTSchema(fieldPath, schema);
         if (isValid) {
           return node;
         }
@@ -256,7 +285,7 @@ export function cleanDocument(query: DocumentNode, schema: IJtdRoot) {
       leave: (node, key, parent, path, ancestors) => {
         fieldPath.pop();
         if (node) {
-          const type = getTypeFromJDTSchema(fieldPath, schema);
+          const type = getFromJDTSchema(fieldPath, schema);
           if(type && !isJTDScalarType(type)) {
             if(node.selectionSet?.selections.length === 0) {
               return null;

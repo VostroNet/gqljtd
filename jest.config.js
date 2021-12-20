@@ -2,4 +2,15 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  testMatch: ["**/?(*.)+(spec|test).[jt]s?(x)"],
+  collectCoverage: true,
+  collectCoverageFrom: [
+    "**/*.{ts,js}",
+    "!**/node_modules/**",
+    "!**/coverage/**",
+    "!src/types/**",
+    "!jest.config.js",
+  ],
+  coveragePathIgnorePatterns: ["/node_modules/"],
+
 };
