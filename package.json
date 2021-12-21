@@ -16,6 +16,7 @@
     "@types/node": "^16.11.12",
     "debug": "^4.3.3",
     "graphql": "^16.0.1",
-    "graphql-tag": "^2.12.6"
+    "graphql-tag": "^2.12.6",
+    "tree-crawl": "^1.1.0"
   }
 }

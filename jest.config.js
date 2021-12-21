@@ -9,6 +9,7 @@ module.exports = {
     "!**/node_modules/**",
     "!**/coverage/**",
     "!src/types/**",
+    "!lib/**",
     "!jest.config.js",
   ],
   coveragePathIgnorePatterns: ["/node_modules/"],

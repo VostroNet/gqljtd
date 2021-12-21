@@ -6,12 +6,16 @@ enum Episode {
   EMPIRE
   JEDI
 }
+type Hand {
+  name: String
+}
 type Person {
   id: ID!
   name: String!
   money: Float
   age: Int
   fav: Episode
+  hands: [Hand]
 }
 type Query {
   peter: Person

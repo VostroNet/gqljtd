@@ -11,7 +11,7 @@ import {
   GraphQLList,
 } from "graphql";
 import { IJtd, IJtdDict, IJtdRoot, JtdType } from "./types/jtd";
-import { devNull } from "os";
+import crawl from "tree-crawl";
 
 
 function createType(fieldType: GraphQLType) {
@@ -190,10 +190,8 @@ export function isJTDScalarType(typeDef: IJtd) {
 }
 
 
-function getFromJDTSchema(path: string[], schema: IJtdRoot, getField = false) {
+function getFromJDTSchema(path: string[], schema: IJtdRoot, getField = false, currentLevel: IJtd | undefined = schema) {
   let p = path;
-
-  let currentLevel: IJtd = schema;
 
   let prop;
   for(let x = 0; x < p.length; x++) {

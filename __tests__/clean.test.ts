@@ -1,6 +1,6 @@
 import { buildSchema, FieldNode, Kind, OperationDefinitionNode } from "graphql";
 import gql from "graphql-tag";
-import {cleanDocument, generateJDTFromSchema} from "../src/index";
+import { cleanDocument, generateJDTFromSchema } from '../src/index';
 import demoSchema from "./utils/demo-schema";
 
 
