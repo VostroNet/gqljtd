@@ -603,15 +603,6 @@ test("object visit - field removal - on enter", () => {
   const newObject = objVisit({
     name: "Wilson",
     optional: true,
-    child: {
-      optional: "maybe",
-    },
-    arr: [{
-      items: 1,
-      optional: 2
-    }, {
-      items: 3
-    }]
   }, {
     [OKind.FIELD]: {
       enter: ( node, key, parent, path, ancestors) => {
@@ -620,17 +611,17 @@ test("object visit - field removal - on enter", () => {
         }
         return node;
       },
+      leave: ( node, key, parent, path, ancestors) => {
+        if(key === "optional") {
+          return undefined;
+        }
+        return node;
+      },
     },
   });
-  expect(newObject).toMatchObject({
-    name: "Wilson",
-    child: {},
-    arr: [{
-      items: 1,
-    }, {
-      items: 3
-    }]
-  });
+  expect(newObject).toBeDefined();
+  expect(newObject?.optional).not.toBeDefined();
+  expect(newObject?.name).toEqual("Wilson");
 });
 
 test("object visit - field removal - on leave", () => {
@@ -656,16 +647,26 @@ test("object visit - field removal - on leave", () => {
       },
     },
   });
-  expect(newObject).toMatchObject({
-    name: "Wilson",
-    optional: true,
-    child: {},
-    arr: [{
-      items: 1,
-    }, {
-      items: 3
-    }]
-  });
+  
+  expect(newObject).toBeDefined();
+  expect(newObject?.name).toEqual("Wilson");
+  expect(newObject?.optional).not.toBeDefined();
+  expect(newObject?.child).toBeDefined();
+  expect(newObject?.child?.optional).not.toBeDefined();
+  expect(newObject?.arr).toBeDefined();
+  expect(newObject?.arr).toHaveLength(2);
+  expect(newObject?.arr[0].items).toBe(1);
+  expect(newObject?.arr[0].optional).not.toBeDefined()
+  expect(newObject?.arr[1].items).toBe(3)
+  // expect(newObject).toMatchObject({
+  //   name: "Wilson",
+  //   child: {},
+  //   arr: [{
+  //     items: 1,
+  //   }, {
+  //     items: 3
+  //   }]
+  // });
 });
 
 
@@ -738,6 +739,52 @@ test("object visit - object removal - on leave", () => {
 });
 
 
+test("object visit - object removal - on leave is not executed", () => {
+  let onLeaveOptional = false;
+  let onEnterTotally = false;
+  let onLeaveTotally = false;
+  const newObject = objVisit({
+    name: "Wilson",
+    optional: {
+      "totally": "optional",
+    },
+  }, {
+    [OKind.FIELD]: {
+      enter: (node, key) => {
+        if(key === "totally") {
+          onEnterTotally = true;
+        }
+        return node;
+      },
+      leave: (node, key) => {
+        if(key === "totally") {
+          onLeaveTotally = true;
+        }
+        return node;
+      }
+    },
+    [OKind.OBJECT]: {
+      enter: ( node, key, parent, path, ancestors) => {
+      if(key === "optional") {
+        return undefined;
+      }
+      return node;
+    },
+      leave: ( node, key, parent, path, ancestors) => {
+        if(key === "optional") {
+          onLeaveOptional = true;
+        }
+        return node;
+      },
+    },
+  });
+  expect(onLeaveOptional).toBe(false);
+  expect(onEnterTotally).toBe(false);
+  expect(onLeaveTotally).toBe(false);
+  expect(newObject).toBeDefined();
+  expect(newObject?.name).toBe("Wilson");
+  expect(newObject?.optional).not.toBeDefined();
+});
 
 
 

@@ -128,7 +128,7 @@ export function objVisit(
           for (const [editKey, editValue] of edits) {
             const arrayKey = editKey - editOffset;
 
-            if (editValue === null) {
+            if (editValue === undefined) {
               node.splice(arrayKey, 1);
               editOffset++;
             } else {
@@ -142,7 +142,11 @@ export function objVisit(
           );
 
           for (const [editKey, editValue] of edits) {
-            node[editKey] = editValue;
+            if(editValue !== undefined) {
+              node[editKey] = editValue;
+            } else {
+              delete node[editKey];
+            }
           }
         }
       }
@@ -179,22 +183,22 @@ export function objVisit(
       break;
     }
 
-    if (result === undefined) {
-      if (!isLeaving) {
-        path.pop();
-        continue;
-      }
-    } else {
-      edits.push([key, result]);
-      if (!isLeaving) {
-        // if (result !== SKIP) {
-        node = result;
-        // } else {
-        //   path.pop();
-        //   continue;
-        // }
-      }
+    // if (result === undefined) {
+    //   if (!isLeaving) {
+    //     path.pop();
+    //     continue;
+    //   }
+    // } else {
+    edits.push([key, result]);
+    if(result === undefined) {
+      path.pop();
+      continue;
     }
+    if (!isLeaving) {
+      node = result;
+    }
+
+    // }
     // }
 
     if (result === undefined && isEdited) {

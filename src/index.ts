@@ -10,8 +10,9 @@ import {
   GraphQLEnumType,
   GraphQLList,
 } from "graphql";
-import { IJtd, IJtdDict, IJtdRoot, JtdType } from "./types/jtd";
+import { IJtd, IJtdDict, IJtdRoot, JtdType } from './types/jtd';
 import crawl from "tree-crawl";
+import { OKind, objVisit } from './obj';
 
 
 function createType(fieldType: GraphQLType) {
@@ -295,5 +296,59 @@ export function cleanDocument(query: DocumentNode, schema: IJtdRoot) {
     }
   });
 
+  return newSchema;
+}
+
+
+export function cleanObject(obj: any, type: IJtd, schema: IJtdRoot) {
+  let fieldPath = [] as string[];
+  const newSchema = objVisit(obj, {
+    [OKind.FIELD]: {
+      enter: (node, key, parent, path, ancestors) => {
+        fieldPath.push(`${key}`);
+        const isValid = getFromJDTSchema(fieldPath, schema, false, type);
+        if (isValid) {
+          return node;
+        }
+        return undefined;
+      },
+      leave: ( node, key, parent, path, ancestors) => {
+        fieldPath.pop();
+        return node;
+      },
+    },
+    [OKind.OBJECT]: {
+      enter: ( node, key, parent, path, ancestors) => {
+        if(key) {
+          fieldPath.push(`${key}`);
+          const isValid = getFromJDTSchema(fieldPath, schema, false, type);
+          if (isValid) {
+            return node;
+          }
+          return undefined;
+        } 
+        return node;
+        
+      },
+      leave: ( node, key, parent, path, ancestors) => {
+        fieldPath.pop();
+        return node;
+      },
+    },
+    [OKind.ARRAY]: {
+      enter: ( node, key, parent, path, ancestors) => {
+        fieldPath.push(`${key}`);
+        const isValid = getFromJDTSchema(fieldPath, schema, false, type);
+        if (isValid) {
+          return node;
+        }
+        return undefined;
+      },
+      leave: ( node, key, parent, path, ancestors) => {
+        fieldPath.pop();
+        return node;
+      },
+    },
+  });
   return newSchema;
 }

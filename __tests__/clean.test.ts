@@ -1,6 +1,6 @@
 import { buildSchema, FieldNode, Kind, OperationDefinitionNode } from "graphql";
 import gql from "graphql-tag";
-import { cleanDocument, generateJDTFromSchema } from '../src/index';
+import { cleanDocument, generateJDTFromSchema, cleanObject } from '../src/index';
 import demoSchema from "./utils/demo-schema";
 
 
@@ -49,4 +49,18 @@ test("clean document - arguments", () => {
   }) as FieldNode;
 
   expect(pocketArgs.arguments).toHaveLength(0);
+});
+
+
+
+test("clean object - basic", () => {
+  const rootSchema = generateJDTFromSchema(demoSchema);
+  const obj = {
+    id: "1",
+    name: "test",
+    optional: true,
+  };
+  const personType = rootSchema.definitions?.Person || {};
+  const newObj = cleanObject(obj, personType, rootSchema);
+  expect(newObj.optional).not.toBeDefined();
 });
